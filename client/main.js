@@ -188,10 +188,10 @@ function setResults(XHR) {
         var caseNumber = Object.keys(cases)[i];
 
         var caseNumberElement = newElement('DIV');
-        caseNumberElement.innerHTML = `<span>Case Number: </span><span><b>${caseNumber}</b></span>`;
+        caseNumberElement.innerHTML = `<span class="font-weight-bold">Case Number: </span><span>${caseNumber}</span>`;
 
         var fileDateElement = newElement('DIV');
-        fileDateElement.innerHTML = `<span>FileDate: </span><span><b>${cases[caseNumber].fileDate}</b></span>`;
+        fileDateElement.innerHTML = `<span class="font-weight-bold">FileDate: </span><span>${cases[caseNumber].fileDate}</span>`;
 
         caseInfo.append(caseNumberElement);
         caseInfo.append(fileDateElement);
