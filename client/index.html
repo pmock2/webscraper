@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous">
+    </script>
+    <script src="main.js"></script>
+    <script src="test.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <title>Full Extract POC</title>
+</head>
+
+<body>
+    <h2 id="title">Full Extract Proof of Concept</h2>
+
+    <div class="subtitle">Use the following form to input case data</div>
+
+    <div class="query-input-group">
+
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="First Name" id="first-name-query" />
+        </div>
+
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="Last Name" id="last-name-query" />
+        </div>
+
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text">DOB</span>
+            </div>
+            <input type="text" class="form-control" placeholder="Day" id="dob-day">
+            <input type="text" class="form-control" placeholder="Month" id="dob-month">
+            <input type="text" class="form-control" placeholder="Year" id="dob-year">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm submit-button" id="submit" onclick="submit()">Submit</button>
+    </div>
+
+</body>
+
+</html>
