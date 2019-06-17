@@ -17,10 +17,14 @@ body {
     margin: 15px 0;
 }
 
+.row {
+    margin: 0;
+}
+
 .col {
     max-width: 100%;
-    background: rgba(0,0,0,0.1);
-    border: 1px solid rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.2);
     padding: 5px 10px;
 }
 
@@ -30,4 +34,18 @@ body {
 
 .match-val[data-match=false] {
     color: blue;
+}
+
+.result-key {
+    font-weight: bold;
+}
+
+.card {
+    margin: 10px 0px;
+    padding: 3px;
+}
+
+.charge-table {
+
+    margin: 15px 5px;
 }

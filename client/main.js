@@ -91,17 +91,17 @@ function showScreenshotPage() {
     submitCaptcha.innerText = 'Submit Captcha';
     submitCaptcha.classList.add('btn', 'btn-primary', 'btn-sm', 'submit-button');
     submitCaptcha.addEventListener('click', postCaptcha);
-    
+
     //create container
     var captchaInputContainer = document.createElement("DIV");
     captchaInputContainer.id = 'captcha-input-container';
-    
+
     //append
     captchaInputContainer.append(showHideButton);
     captchaInputContainer.append(captchaInput);
     captchaInputContainer.append(submitCaptcha);
     captchaInputContainer.append(captcha);
-    
+
     document.body.append(captchaInputContainer);
 }
 
@@ -120,9 +120,9 @@ function postCaptcha() {
     var sendObj = {
         captchaText: captchaInput
     }
-    
+
     var XHR = new XMLHttpRequest();
-    
+
     XHR.onreadystatechange = function () {
         if (this.readyState === 4 && this.status === 200) {
             setResults(XHR);
@@ -132,9 +132,9 @@ function postCaptcha() {
     XHR.open("POST", '/captcha');
     XHR.setRequestHeader('Content-type', 'application/json');
     XHR.send(JSON.stringify(sendObj));
-    
+
     document.querySelector('#captcha-input-container').remove();
-    
+
     info.innerText = 'Executing Defendant Search...';
     title.innerText = 'Running Query';
 }
@@ -142,32 +142,94 @@ function postCaptcha() {
 function setResults(XHR) {
     info.innerText = '';
     title.innerText = 'Results';
-            
-    var result = document.createElement("DIV");
-    console.log(XHR.responseText);
     
-    var innerHTML = `
-        <div>
-            <div class="row w-25">
-                <div class="col">Column</div>
+    var resultObj = JSON.parse(XHR.responseText);
+
+    match = resultObj.match;
+    first = resultObj.first;
+    last = resultObj.last;
+    DOB = resultObj.DOB;
+    cases = resultObj.cases;
+
+
+    var container = newElement('DIV');
+
+    var matchElement = newElement("DIV");
+    matchElement.innerHTML = `<span class="result-key">Match : </span><span class="match-val">${match}</span>`;
+
+    var firstElement = newElement("DIV");
+    firstElement.innerHTML = `<span class="result-key">First Name : </span><span ">${first}</span>`;
+
+    var lastElement = newElement("DIV");
+    lastElement.innerHTML = `<span class="result-key">First Name : </span><span ">${last}</span>`;
+
+    var DOBElement = newElement("DIV");
+    DOBElement.innerHTML = `<span class="result-key">DOB : </span><span ">${DOB.day}/</span><span ">${DOB.month}/</span><span ">${DOB.year}</span>`;
+
+    var hr = newElement("HR");
+
+    container.append(matchElement);
+    container.append(firstElement);
+    container.append(lastElement);
+    container.append(DOBElement);
+    container.append(hr);
+
+    for (var i = 0; i < Object.keys(cases).length; i++) {
+        var caseDrop = newElement("BUTTON");
+        caseDrop.classList.add('btn', 'btn-primary', 'w-50');
+        caseDrop.dataset.toggle = "collapse";
+        caseDrop.dataset.target = `#case-info-${i}`;
+        caseDrop.innerText = `Case ${i}`;
+
+        var caseInfo = newElement('DIV');
+        caseInfo.classList.add('collapse', 'card', 'w-50');
+        caseInfo.id = `case-info-${i}`;
+
+        var caseNumber = Object.keys(cases)[i];
+
+        var caseNumberElement = newElement('DIV');
+        caseNumberElement.innerHTML = `<span>Case Number: </span><span><b>${caseNumber}</b></span>`;
+
+        var fileDateElement = newElement('DIV');
+        fileDateElement.innerHTML = `<span>FileDate: </span><span><b>${cases[caseNumber].fileDate}</b></span>`;
+
+        caseInfo.append(caseNumberElement);
+        caseInfo.append(fileDateElement);
+
+        var chargeTable = newElement('DIV');
+        chargeTable.classList.add('charge-table');
+
+        var chargeTableHeader = newElement("DIV");
+        chargeTableHeader.innerHTML = `
+            <div class="row">
+                <div class="col font-weight-bold">Charge</div>
+                <div class="col font-weight-bold">Charge Type</div>
             </div>
-            <div class="row w-25">
-                <div class="col">Column</div>
-            </div>
-            <div class="row w-25">
-                <div class="col">Column</div>
-            </div>
-            <div class="row w-25">
-                <div class="col">Column</div>
-            </div>
-            <div class="row w-25">
-                <div class="col">Column</div>
-            </div>
-        </div>
-    `;
-    
-    
-    result.innerHTML = XHR.responseText;
-            
-    document.body.append(result);
+        `;
+
+        chargeTable.append(chargeTableHeader);
+
+        var charges = cases[caseNumber].charges;
+        for (var j = 0; j < Object.keys(charges).length; j++) {
+            var chargeRow = newElement("DIV");
+            chargeRow.classList.add('row');
+            chargeRow.innerHTML = `
+                <div class="col">${charges[j].charge}</div>
+                <div class="col">${charges[j].chargeType}</div>
+            `
+            chargeTable.append(chargeRow);
+        }
+
+        caseInfo.append(chargeTable);
+
+        container.append(caseDrop);
+        container.append(caseInfo);
+
+
+    }
+    document.body.append(container);
+}
+
+function newElement(tag) {
+    return document.createElement(tag);
 }
