@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-var headless = true;
+var headless = false;
 var debugMode = true;
 var browser;
 var page;
@@ -45,12 +45,18 @@ let runSearchToCaptcha = async (caseInfo) => {
 
     await page.click('#tab4defaultheader');
 
-    await page.waitFor(500);
+    await page.waitFor(1000);
 
     await page.type('#txtDefendantFirstName', info.first);
     await page.type('#txtDefendantLastName', info.last);
-
     await page.type('#txtDefendantDOB1', info.DOB.month);
+    
+    await page.click('#txtDefendantDOB2');
+    
+    await page.evaluate(() => {
+       document.querySelector('#txtDefendantDOB2').value = '';
+    });
+    
     await page.type('#txtDefendantDOB2', info.DOB.day);
     await page.type('#txtDefendantDOB3', info.DOB.year);
 
