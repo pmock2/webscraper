@@ -169,7 +169,7 @@ function setResults(XHR) {
     lastElement.innerHTML = `<span class="result-key">First Name : </span><span ">${last}</span>`;
 
     var DOBElement = newElement("DIV");
-    DOBElement.innerHTML = `<span class="result-key">DOB : </span><span ">${DOB.day}/</span><span ">${DOB.month}/</span><span ">${DOB.year}</span>`;
+    DOBElement.innerHTML = `<span class="result-key">DOB : </span><span ">${DOB.month}/</span><span ">${DOB.day}/</span><span ">${DOB.year}</span>`;
 
     var hr = newElement("HR");
 

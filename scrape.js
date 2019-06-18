@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-var headless = true;
+var headless = false;
 var debugMode = true;
 var browser;
 var page;
@@ -90,14 +90,13 @@ async function tryCaptcha(captchaText) {
         await page.click('#CaptchaCodeTextBox');
         goodCaptcha = false;
     } catch (error) {
-
+        print(error);
         goodCaptcha = true;
     }
 
     if (goodCaptcha) {
         return runSearchPostCaptcha();
     } else {
-
         await getCaptchaPic(page);
         throw 'Invalid Captcha';
     }
@@ -117,11 +116,24 @@ let runSearchPostCaptcha = async () => {
 
     try {
         await page.waitFor('#lblDefendants1', {
-            timeout: 10000
+            timeout: 5000
         });
     } catch (error) {
-        await getCaptchaPic(page);
-        throw error;
+        var clear = await page.evaluate(() => {
+            var errorCard = document.querySelector('#lblSearchError');
+            if (errorCard !== null && errorCard !== undefined) {
+                var errorCardText = document.querySelector('#lblSearchError').innerHTML;
+                return errorCardText === 'No defendants found for the criteria entered';
+            }
+            return false;
+        });
+
+        if (clear) {
+            return finish();
+        } else {
+            await getCaptchaPic(page);
+            throw error;
+        }
     }
 
     print('Grabbing records count...', true);
@@ -215,6 +227,10 @@ let runSearchPostCaptcha = async () => {
         }
     }
 
+    return finish();
+}
+
+function finish() {
     print('Finished.', true);
     print('Sending results...', true);
 
@@ -225,7 +241,6 @@ let runSearchPostCaptcha = async () => {
     result.DOB = info.DOB;
 
     print(result, true);
-
     return result;
 }
 
