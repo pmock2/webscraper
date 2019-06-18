@@ -21,7 +21,7 @@ app.listen(8080, () => {
 
 app.post('/captcha', (req, res) => {
     var captchaText = req.body.captchaText;
-    scrape.runSearchPostCaptcha(captchaText).then((result) => {
+    scrape.tryCaptcha(captchaText).then((result) => {
         res.status(200).send(result);
     }).catch((err) => {
         print(err);
@@ -46,17 +46,6 @@ app.post('/start', (req, res) => {
         print(err);
         res.status(500).send(err);
     });
-
-    // scrape.runSearch(infoObject).then((value) => {
-    //     print('-------------------------------------');
-    //     print('-------------RESULTS-----------------');
-    //     print('-------------------------------------');
-    //     print(JSON.stringify(value, null, 2)); // Success!
-    //     res.status(200).send(JSON.stringify(value, null, 2));
-    // }).catch((err) => {
-    //     print(err);
-    //     res.status(500).send(err);
-    // })
 });
 
 

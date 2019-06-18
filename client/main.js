@@ -61,9 +61,13 @@ function submit() {
     XHR.send(JSON.stringify(sendObj));
 }
 
-function showScreenshotPage() {
+function showScreenshotPage(error) {
     info.innerText = 'Use the button to show/hide the screenshot, then input the captcha in the space below. Click "Submit" to continue.';
     title.innerText = 'Input Captcha';
+
+    if (error) {
+        title.innerText = 'Captcha Error';
+    }
 
     //create the iframe to show the captcha
     var captcha = document.createElement("IFRAME");
@@ -126,6 +130,8 @@ function postCaptcha() {
     XHR.onreadystatechange = function () {
         if (this.readyState === 4 && this.status === 200) {
             setResults(XHR);
+        } else if (this.status === 500 && this.readyState === 4) {
+            showScreenshotPage(true);
         }
     }
 
@@ -142,7 +148,7 @@ function postCaptcha() {
 function setResults(XHR) {
     info.innerText = '';
     title.innerText = 'Results';
-    
+
     var resultObj = JSON.parse(XHR.responseText);
 
     match = resultObj.match;
@@ -150,7 +156,6 @@ function setResults(XHR) {
     last = resultObj.last;
     DOB = resultObj.DOB;
     cases = resultObj.cases;
-
 
     var container = newElement('DIV');
 

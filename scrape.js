@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-var headless = false;
+var headless = true;
 var debugMode = true;
 var browser;
 var page;
@@ -22,25 +22,25 @@ let init = async () => {
     browser = await puppeteer.launch({
         headless: headless
     });
-    
-    page = await browser.newPage();   
-    
+
+    page = await browser.newPage();
+
     await page.setViewport({
         width: 1500,
         height: 1000
     });
-    
+
     await page.goto('https://www2.miami-dadeclerk.com/CJIS/CaseSearch.aspx?AspxAutoDetectCookieSupport=1');
-    
+
     print('Done.', true);
 }
 
 //scraping data
 let runSearchToCaptcha = async (caseInfo) => {
     info = caseInfo;
-    
+
     print('Starting search...', true);
-    
+
     print(info, true);
 
     await page.click('#tab4defaultheader');
@@ -50,13 +50,13 @@ let runSearchToCaptcha = async (caseInfo) => {
     await page.type('#txtDefendantFirstName', info.first);
     await page.type('#txtDefendantLastName', info.last);
     await page.type('#txtDefendantDOB1', info.DOB.month);
-    
+
     await page.click('#txtDefendantDOB2');
-    
+
     await page.evaluate(() => {
-       document.querySelector('#txtDefendantDOB2').value = '';
+        document.querySelector('#txtDefendantDOB2').value = '';
     });
-    
+
     await page.type('#txtDefendantDOB2', info.DOB.day);
     await page.type('#txtDefendantDOB3', info.DOB.year);
 
@@ -64,18 +64,46 @@ let runSearchToCaptcha = async (caseInfo) => {
         document.querySelector('#ddlDefendantSex').options[1].selected = true;
     });
 
-    await page.click('#CaptchaCodeTextBox');
-
-    async function getCaptchaPic() {
-        await page.screenshot({
-            path: 'client/captcha.png'
-        });
-    }
-
-    return getCaptchaPic();
+    return getCaptchaPic(page);
 }
 
-let runSearchPostCaptcha = async (captchaText) => {
+async function getCaptchaPic(page) {
+    await page.click('#CaptchaCodeTextBox');
+
+    return await page.screenshot({
+        path: 'client/captcha.png'
+    });
+}
+
+async function tryCaptcha(captchaText) {
+    print('Running search post captcha...', true);
+
+    print('Typing captcha text...', true);
+    await page.type('#CaptchaCodeTextBox', captchaText);
+
+    print('Clicking search...', true);
+    await page.click('#btnNameSearch');
+
+    var goodCaptcha = false;
+
+    try {
+        await page.click('#CaptchaCodeTextBox');
+        goodCaptcha = false;
+    } catch (error) {
+
+        goodCaptcha = true;
+    }
+
+    if (goodCaptcha) {
+        return runSearchPostCaptcha();
+    } else {
+
+        await getCaptchaPic(page);
+        throw 'Invalid Captcha';
+    }
+}
+
+let runSearchPostCaptcha = async () => {
     // var waitForCaptcha = new Promise((resolve, reject) => {
     //     rl.question('Input Captcha value from the captcha.png file...\n', (answer) => {
     //         rl.close();
@@ -84,23 +112,23 @@ let runSearchPostCaptcha = async (captchaText) => {
     // });
 
     // var captchaText = await waitForCaptcha;
-    
-    print('Running search post captcha...', true);
-    
-    print('Typing captcha text...', true);
-    await page.type('#CaptchaCodeTextBox', captchaText);
-    
-    print('Clicking search...', true);
-    await page.click('#btnNameSearch');
-    
+
     print('Waiting for defendants...', true);
-    await page.waitFor('#lblDefendants1');
-    
+
+    try {
+        await page.waitFor('#lblDefendants1', {
+            timeout: 10000
+        });
+    } catch (error) {
+        await getCaptchaPic(page);
+        throw error;
+    }
+
     print('Grabbing records count...', true);
     var records = await page.evaluate(() => {
         return document.querySelector('#lblDefendants1').innerHTML;
     });
-    
+
     print('Looping through records...', true);
     for (var i = 1; i < parseInt(records) + 1; i++) {
         await page.waitFor('#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(1) > td:nth-child(7)');
@@ -187,11 +215,16 @@ let runSearchPostCaptcha = async (captchaText) => {
         }
     }
 
+    print('Finished.', true);
+    print('Sending results...', true);
+
     browser.close();
-    
+
     result.first = info.first;
     result.last = info.last;
     result.DOB = info.DOB;
+
+    print(result, true);
 
     return result;
 }
@@ -210,5 +243,6 @@ function print(text, debug) {
 module.exports = {
     runSearchToCaptcha: runSearchToCaptcha,
     runSearchPostCaptcha: runSearchPostCaptcha,
-    init: init
+    init: init,
+    tryCaptcha: tryCaptcha,
 };
