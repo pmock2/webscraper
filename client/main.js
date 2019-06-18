@@ -181,13 +181,13 @@ function setResults(XHR) {
 
     for (var i = 0; i < Object.keys(cases).length; i++) {
         var caseDrop = newElement("BUTTON");
-        caseDrop.classList.add('btn', 'btn-primary', 'w-50');
+        caseDrop.classList.add('btn', 'btn-primary', 'w-75', 'collapse-button');
         caseDrop.dataset.toggle = "collapse";
         caseDrop.dataset.target = `#case-info-${i}`;
         caseDrop.innerText = `Case ${i}`;
 
         var caseInfo = newElement('DIV');
-        caseInfo.classList.add('collapse', 'card', 'w-50');
+        caseInfo.classList.add('collapse', 'card', 'w-75');
         caseInfo.id = `case-info-${i}`;
 
         var caseNumber = Object.keys(cases)[i];

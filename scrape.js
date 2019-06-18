@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-var headless = false;
+var headless = true;
 var debugMode = true;
 var browser;
 var page;
@@ -26,8 +26,8 @@ let init = async () => {
     page = await browser.newPage();
 
     await page.setViewport({
-        width: 1500,
-        height: 1000
+        width: 1000,
+        height: 800
     });
 
     await page.goto('https://www2.miami-dadeclerk.com/CJIS/CaseSearch.aspx?AspxAutoDetectCookieSupport=1');
@@ -166,8 +166,13 @@ let runSearchPostCaptcha = async () => {
                 return parseInt(document.querySelector('#lblCases').innerHTML);
             });
 
+            print(`Found ${caseCount} case(s)`, true);
+
             for (var j = 0; j < caseCount; j++) {
                 //click on that row's details
+
+                await page.waitFor(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
+
                 await page.click(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
 
                 await page.waitFor('#lblCaseNumber');
@@ -195,6 +200,8 @@ let runSearchPostCaptcha = async () => {
                 var chargeCount = await page.evaluate(() => {
                     return parseInt(document.querySelector('#lblTotalofCharges').innerHTML);
                 });
+
+                print(`Found ${chargeCount} charge(s)...`, true);
 
                 for (var k = 0; k < chargeCount; k++) {
                     var charge = await page.evaluate(x => {
