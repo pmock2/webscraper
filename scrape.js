@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-var headless = true;
+var headless = false;
 var debugMode = true;
 var browser;
 var page;
@@ -33,6 +33,9 @@ let init = async () => {
     await page.goto('https://www2.miami-dadeclerk.com/CJIS/CaseSearch.aspx?AspxAutoDetectCookieSupport=1');
 
     print('Done.', true);
+    return new Promise((resolve, reject) => {
+        resolve(true);
+    });
 }
 
 //scraping data
@@ -60,9 +63,23 @@ let runSearchToCaptcha = async (caseInfo) => {
     await page.type('#txtDefendantDOB2', info.DOB.day);
     await page.type('#txtDefendantDOB3', info.DOB.year);
 
-    await page.evaluate(() => {
-        document.querySelector('#ddlDefendantSex').options[1].selected = true;
-    });
+    await page.evaluate(info => {
+        switch (info.sex) {
+            case 'male':
+                document.querySelector('#ddlDefendantSex').options[1].selected = true;
+                break;
+            case 'female':
+                document.querySelector('#ddlDefendantSex').options[2].selected = true;
+                break;
+            case 'unspecified':
+                document.querySelector('#ddlDefendantSex').options[3].selected = true;
+                break;
+            default:
+                document.querySelector('#ddlDefendantSex').options[3].selected = true;
+                break;
+        }
+    }, info);
+
 
     return getCaptchaPic(page);
 }
@@ -136,24 +153,30 @@ let runSearchPostCaptcha = async () => {
         }
     }
 
-    print('Grabbing records count...', true);
-    var records = await page.evaluate(() => {
+    print('Grabbing Defendants count...', true);
+    var defendantsCount = await page.evaluate(() => {
         return document.querySelector('#lblDefendants1').innerHTML;
     });
 
-    print('Looping through records...', true);
-    for (var i = 1; i < parseInt(records) + 1; i++) {
+    print('Looping through Defendants...', true);
+    for (var i = 1; i < parseInt(defendantsCount) + 1; i++) {
         await page.waitFor('#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(1) > td:nth-child(7)');
 
         var DOB = await page.evaluate(x => {
             var DOBElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(7)`);
             return DOBElement.innerHTML;
         }, i);
+        
+        var sex = await page.evaluate(x => {
+            var sexElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(6)`);
+            return sexElement.innerHTML;
+        }, i);
 
         var DOBSplit = DOB.split('/');
 
-        if (DOBSplit[0] === info.DOB.month && DOBSplit[1] === info.DOB.day && DOBSplit[2] === info.DOB.year) {
-            print('Found matching DOB', true);
+        if (DOBSplit[0] === info.DOB.month && DOBSplit[1] === info.DOB.day && DOBSplit[2] === info.DOB.year
+            && (info.sex[0] === sex[0] || info.sex.toLowerCase === 'unspecified')) {
+            print('Found matching DOB and Sex', true);
             result.match = true;
 
             var select = `.table-condensed tbody tr:nth-child(${i}) td button`;
@@ -246,6 +269,7 @@ function finish() {
     result.first = info.first;
     result.last = info.last;
     result.DOB = info.DOB;
+    result.sex = info.sex;
 
     print(result, true);
     return result;

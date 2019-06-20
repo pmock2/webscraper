@@ -16,7 +16,6 @@ app.use('/', express.static('client'));
 
 app.listen(8080, () => {
     console.log(`Server started on port 8080`);
-    scrape.init();
 });
 
 app.post('/captcha', (req, res) => {
@@ -29,6 +28,11 @@ app.post('/captcha', (req, res) => {
     });
 });
 
+app.get('/init', async (req, res) => {
+    await  scrape.init();
+    res.status(200).send('Started server');
+});
+
 app.post('/start', (req, res) => {
     var infoObject = {
         first: req.body.firstName,
@@ -37,7 +41,8 @@ app.post('/start', (req, res) => {
             day: req.body.DOBDay,
             month: req.body.DOBMonth,
             year: req.body.DOBYear,
-        }
+        },
+        sex: req.body.sex
     }
 
     scrape.runSearchToCaptcha(infoObject).then(() => {

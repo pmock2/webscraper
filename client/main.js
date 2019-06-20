@@ -1,12 +1,15 @@
 var title;
 var info;
 
+document.addEventListener('DOMContentLoaded', startPuppeteer, false);
+
 function submit() {
     var firstName = document.querySelector('#first-name-query').value;
     var lastName = document.querySelector('#last-name-query').value;
     var DOBDay = document.querySelector('#dob-day').value;
     var DOBMonth = document.querySelector('#dob-month').value;
     var DOBYear = document.querySelector('#dob-year').value;
+    var sex = document.querySelector('#dropdownMenuButton').innerHTML;
 
     if (firstName === '') {
         alert('Please fill out First Name field');
@@ -32,13 +35,18 @@ function submit() {
         alert('Please fill out DOB-Year field');
         return;
     }
+    
+    if (sex === 'sex') {
+        alert('Please choose a subject sex');
+    }
 
     var sendObj = {
         "firstName": firstName,
         "lastName": lastName,
         "DOBDay": DOBDay,
         "DOBMonth": DOBMonth,
-        "DOBYear": DOBYear
+        "DOBYear": DOBYear,
+        "sex" : sex.toLowerCase()
     }
 
     document.querySelector('.query-input-group').remove();
@@ -230,9 +238,84 @@ function setResults(XHR) {
         container.append(caseDrop);
         container.append(caseInfo);
 
+        var restartButton = newElement('BUTTON');
+        restartButton.innerText = 'Run New Search';
+        restartButton.classList.add('btn', 'btn-primary', 'btn-sm', 'submit-button');
+        restartButton.addEventListener('click', startPuppeteer);
+
+        container.append(restartButton);
 
     }
     document.body.append(container);
+}
+
+function startPuppeteer() {
+    var roller = newElement("DIV");
+    roller.classList.add('roller-container');
+    roller.innerHTML = `<div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>`;
+    document.body.append(roller);
+
+    var XHR = new XMLHttpRequest();
+
+    XHR.onreadystatechange = function () {
+        if (this.readyState === 4 && this.status === 200) {
+            console.log('Started Puppeteer');
+            while (document.body.firstChild !== null) {
+                document.body.removeChild(document.body.firstChild);
+            }
+            document.body.innerHTML = `
+            <h2 id="title">Full Extract Proof of Concept</h2>
+
+            <div class="subtitle">Use the following form to input case data</div>
+
+            <div class="query-input-group">
+
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="First Name" id="first-name-query" />
+                </div>
+
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Last Name" id="last-name-query" />
+                </div>
+
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">DOB</span>
+                    </div>
+                    <input type="text" class="form-control" placeholder="Month" id="dob-month">
+                    <input type="text" class="form-control" placeholder="Day" id="dob-day">
+                    <input type="text" class="form-control" placeholder="Year" id="dob-year">
+                </div>
+                
+                <div class="dropdown">
+                    <button class="btn btn-info dropdown-toggle submit-button" type="button" id="dropdownMenuButton" data-toggle="dropdown">
+                        Sex
+                    </button>
+                    
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" id="unspecified">Unspecified</a>
+                        <a class="dropdown-item" id="male">Male</a>
+                        <a class="dropdown-item" id="female">Female</a>
+                    </div>
+                    
+                </div>
+                <button type="button" class="btn btn-primary btn-sm submit-button" id="submit"
+                    onclick="submit()">Submit</button>
+            </div>
+            `;
+            
+            for (const child of document.querySelector('.dropdown-menu').children) {
+                child.addEventListener('click', () => {
+                    document.querySelector('#dropdownMenuButton').innerHTML = child.innerHTML;
+                    
+                });
+            }
+        }
+    }
+
+    XHR.open("GET", '/init');
+    XHR.send();
+
 }
 
 function newElement(tag) {
