@@ -11,10 +11,11 @@ var debugMode = true;
 var browser;
 var page;
 var info;
+var css;
 
 var result = {
     match: false,
-    cases: {}
+    cases: {},
 }
 
 let init = async () => {
@@ -30,6 +31,15 @@ let init = async () => {
         height: 800
     });
 
+    print('Grabbing page CSS...');
+
+    await page.goto('https://www2.miami-dadeclerk.com/CJIS/Content/cjis.css');
+
+    css = await page.evaluate(() => {
+        return document.querySelector("body > pre").innerHTML;
+    });
+
+    print('navigate to main court page...');
     await page.goto('https://www2.miami-dadeclerk.com/CJIS/CaseSearch.aspx?AspxAutoDetectCookieSupport=1');
 
     print('Done.', true);
@@ -45,12 +55,12 @@ let runSearchToCaptcha = async (caseInfo) => {
     print('Starting search...', true);
 
     print(info, true);
-    
+
     print('clicking defendant tab...');
     await page.click('#tab4defaultheader');
 
     await page.waitFor(1000);
-    
+
     print('Inputting defendant info...');
     await page.type('#txtDefendantFirstName', info.first);
     await page.type('#txtDefendantLastName', info.last);
@@ -87,7 +97,6 @@ let runSearchToCaptcha = async (caseInfo) => {
 }
 
 async function getCaptchaPic(page) {
-    
     print('Waiting for captcha info...');
     await page.click('#CaptchaCodeTextBox');
     return await page.screenshot({
@@ -111,9 +120,8 @@ async function tryCaptcha(captchaText) {
         goodCaptcha = false;
     } catch (error) {
         if ((error.message).includes('No node found for selector: #CaptchaCodeTextBox')) {
-            goodCaptcha = true;   
-        }
-        else {
+            goodCaptcha = true;
+        } else {
             print(error);
         }
     }
@@ -161,13 +169,13 @@ let runSearchPostCaptcha = async () => {
     for (var i = 1; i < parseInt(defendantsCount) + 1; i++) {
         print('Waiting for subjects table...', true);
         await page.waitFor('#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(1) > td:nth-child(7)');
-        
+
         print('Grabbing subject DOB...', true);
         var DOB = await page.evaluate(x => {
             var DOBElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(7)`);
             return DOBElement.innerHTML;
         }, i);
-        
+
         print('Grabbing subject sex...', true);
         var sex = await page.evaluate(x => {
             var sexElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(6)`);
@@ -176,34 +184,39 @@ let runSearchPostCaptcha = async () => {
 
         var DOBSplit = DOB.split('/');
 
-        if (DOBSplit[0] === info.DOB.month && DOBSplit[1] === info.DOB.day && DOBSplit[2] === info.DOB.year
-            && (info.sex[0] === sex[0] || info.sex.toLowerCase === 'unspecified')) {
+        if (DOBSplit[0] === info.DOB.month && DOBSplit[1] === info.DOB.day && DOBSplit[2] === info.DOB.year &&
+            (info.sex[0] === sex[0].toLowerCase() || info.sex.toLowerCase() === 'unspecified')) {
             print('Found matching DOB and Sex', true);
             result.match = true;
-            
+
             print('Clicking cases button...', true);
             await page.click(`.table-condensed tbody tr:nth-child(${i}) td button`);
-            
+
             print('Waiting for cases page...', true);
             await page.waitFor('#lblCases');
-            
+
             print('Getting case count..', true);
             var caseCount = await page.evaluate(() => {
                 return parseInt(document.querySelector('#lblCases').innerHTML);
             });
 
             print(`Found ${caseCount} case(s)`, true);
-            
+
             print('Looping through cases...', true);
 
             for (var j = 0; j < caseCount; j++) {
+
+                var caseHTML = await page.evaluate(() => {
+                    return document.body.innerHTML;
+                });
+
                 //click on that row's details
                 print('Waiting for case button...', true);
                 await page.waitFor(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
-                
+
                 print('Clicking case button', true);
                 await page.click(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
-                
+
                 print('Waiting for case modal..', true);
                 await page.waitFor('#lblCaseNumber');
 
@@ -217,6 +230,8 @@ let runSearchPostCaptcha = async () => {
 
                 result.cases[caseNo] = {};
 
+                result.cases[caseNo].html = caseHTML;
+
                 //grab the file date
                 print('Extracting File date...', true);
                 var fileDate = await page.evaluate(() => {
@@ -228,7 +243,7 @@ let runSearchPostCaptcha = async () => {
                 result.cases[caseNo].fileDate = fileDate;
 
                 result.cases[caseNo].charges = {};
-                
+
                 print('Getting charges count...', true);
                 var chargeCount = await page.evaluate(() => {
                     return parseInt(document.querySelector('#lblTotalofCharges').innerHTML);
@@ -236,6 +251,7 @@ let runSearchPostCaptcha = async () => {
 
                 print(`Found ${chargeCount} charge(s)...`, true);
                 print('Looping through charges...', true);
+
                 for (var k = 0; k < chargeCount; k++) {
                     print('Getting charge...', true);
                     var charge = await page.evaluate(x => {
@@ -245,8 +261,13 @@ let runSearchPostCaptcha = async () => {
                     print(`Charge ${k+1} : ${charge}`, true);
 
                     result.cases[caseNo].charges[k] = {};
-
                     result.cases[caseNo].charges[k].charge = charge;
+
+                    var chargeHTML = await page.evaluate(() => {
+                        return document.body.innerHTML;
+                    });
+                    
+                    result.cases[caseNo].charges[k].html = chargeHTML;
                     
                     print('Getting charge type...', true);
 
@@ -258,12 +279,14 @@ let runSearchPostCaptcha = async () => {
 
                     result.cases[caseNo].charges[k].chargeType = chargeType;
                 }
-                
+
                 print('Going back to case list...', true);
                 await page.click('#lnkCases');
             }
-            
+
             print('Going back to defendants list...', true);
+            
+            await page.waitFor('#lnkDefendants');
 
             await page.click('#lnkDefendants');
 
