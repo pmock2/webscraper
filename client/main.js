@@ -159,16 +159,17 @@ function setResults(XHR) {
 
     var resultObj = JSON.parse(XHR.responseText);
 
-    match = resultObj.match;
-    first = resultObj.first;
-    last = resultObj.last;
+    match = resultObj.match + '';
+    first = resultObj.first + '';
+    last = resultObj.last + '';
     DOB = resultObj.DOB;
+    sex = resultObj.sex + '';
     cases = resultObj.cases;
 
     var container = newElement('DIV');
 
     var matchElement = newElement("DIV");
-    matchElement.innerHTML = `<span class="result-key">Match : </span><span class="match-val">${match}</span>`;
+    matchElement.innerHTML = `<span class="result-key">Match : </span><span class="match-val">${match.toUpperCase()}</span>`;
 
     var firstElement = newElement("DIV");
     firstElement.innerHTML = `<span class="result-key">First Name : </span><span ">${first}</span>`;
@@ -178,6 +179,9 @@ function setResults(XHR) {
 
     var DOBElement = newElement("DIV");
     DOBElement.innerHTML = `<span class="result-key">DOB : </span><span ">${DOB.month}/</span><span ">${DOB.day}/</span><span ">${DOB.year}</span>`;
+    
+    var sexElement = newElement("DIV");
+    sexElement.innerHTML = `<span class="result-key">Sex : </span><span>${sex.toUpperCase()}</span>`;
 
     var hr = newElement("HR");
 
@@ -185,6 +189,7 @@ function setResults(XHR) {
     container.append(firstElement);
     container.append(lastElement);
     container.append(DOBElement);
+    container.append(sexElement);
     container.append(hr);
 
     for (var i = 0; i < Object.keys(cases).length; i++) {
@@ -237,16 +242,15 @@ function setResults(XHR) {
 
         container.append(caseDrop);
         container.append(caseInfo);
-
-        var restartButton = newElement('BUTTON');
-        restartButton.innerText = 'Run New Search';
-        restartButton.classList.add('btn', 'btn-primary', 'btn-sm', 'submit-button');
-        restartButton.addEventListener('click', startPuppeteer);
-
-        container.append(restartButton);
-
     }
     document.body.append(container);
+    
+    var restartButton = newElement('BUTTON');
+    restartButton.innerText = 'Run New Search';
+    restartButton.classList.add('btn', 'btn-primary', 'btn-sm', 'submit-button');
+    restartButton.addEventListener('click', startPuppeteer);
+
+    document.body.append(restartButton);
 }
 
 function startPuppeteer() {

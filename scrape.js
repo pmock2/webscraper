@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-var headless = false;
+var headless = true;
 var debugMode = true;
 var browser;
 var page;
@@ -45,11 +45,13 @@ let runSearchToCaptcha = async (caseInfo) => {
     print('Starting search...', true);
 
     print(info, true);
-
+    
+    print('clicking defendant tab...');
     await page.click('#tab4defaultheader');
 
     await page.waitFor(1000);
-
+    
+    print('Inputting defendant info...');
     await page.type('#txtDefendantFirstName', info.first);
     await page.type('#txtDefendantLastName', info.last);
     await page.type('#txtDefendantDOB1', info.DOB.month);
@@ -85,8 +87,9 @@ let runSearchToCaptcha = async (caseInfo) => {
 }
 
 async function getCaptchaPic(page) {
+    
+    print('Waiting for captcha info...');
     await page.click('#CaptchaCodeTextBox');
-
     return await page.screenshot({
         path: 'client/captcha.png'
     });
@@ -107,8 +110,12 @@ async function tryCaptcha(captchaText) {
         await page.click('#CaptchaCodeTextBox');
         goodCaptcha = false;
     } catch (error) {
-        print(error);
-        goodCaptcha = true;
+        if ((error.message).includes('No node found for selector: #CaptchaCodeTextBox')) {
+            goodCaptcha = true;   
+        }
+        else {
+            print(error);
+        }
     }
 
     if (goodCaptcha) {
@@ -120,17 +127,7 @@ async function tryCaptcha(captchaText) {
 }
 
 let runSearchPostCaptcha = async () => {
-    // var waitForCaptcha = new Promise((resolve, reject) => {
-    //     rl.question('Input Captcha value from the captcha.png file...\n', (answer) => {
-    //         rl.close();
-    //         resolve(answer);
-    //     });
-    // });
-
-    // var captchaText = await waitForCaptcha;
-
     print('Waiting for defendants...', true);
-
     try {
         await page.waitFor('#lblDefendants1', {
             timeout: 5000
@@ -146,10 +143,12 @@ let runSearchPostCaptcha = async () => {
         });
 
         if (clear) {
+            print('No matching criteria, clearing...', true);
             return finish();
         } else {
+            print('Invalid captcha', true);
             await getCaptchaPic(page);
-            throw error;
+            throw 'INVALID CAPTCHA ERROR';
         }
     }
 
@@ -160,13 +159,16 @@ let runSearchPostCaptcha = async () => {
 
     print('Looping through Defendants...', true);
     for (var i = 1; i < parseInt(defendantsCount) + 1; i++) {
+        print('Waiting for subjects table...', true);
         await page.waitFor('#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(1) > td:nth-child(7)');
-
+        
+        print('Grabbing subject DOB...', true);
         var DOB = await page.evaluate(x => {
             var DOBElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(7)`);
             return DOBElement.innerHTML;
         }, i);
         
+        print('Grabbing subject sex...', true);
         var sex = await page.evaluate(x => {
             var sexElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(6)`);
             return sexElement.innerHTML;
@@ -178,29 +180,35 @@ let runSearchPostCaptcha = async () => {
             && (info.sex[0] === sex[0] || info.sex.toLowerCase === 'unspecified')) {
             print('Found matching DOB and Sex', true);
             result.match = true;
-
-            var select = `.table-condensed tbody tr:nth-child(${i}) td button`;
-
-            await page.click(select);
-
+            
+            print('Clicking cases button...', true);
+            await page.click(`.table-condensed tbody tr:nth-child(${i}) td button`);
+            
+            print('Waiting for cases page...', true);
             await page.waitFor('#lblCases');
-
+            
+            print('Getting case count..', true);
             var caseCount = await page.evaluate(() => {
                 return parseInt(document.querySelector('#lblCases').innerHTML);
             });
 
             print(`Found ${caseCount} case(s)`, true);
+            
+            print('Looping through cases...', true);
 
             for (var j = 0; j < caseCount; j++) {
                 //click on that row's details
-
+                print('Waiting for case button...', true);
                 await page.waitFor(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
-
+                
+                print('Clicking case button', true);
                 await page.click(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
-
+                
+                print('Waiting for case modal..', true);
                 await page.waitFor('#lblCaseNumber');
 
                 //grab the case no
+                print('Extracting case number...', true);
                 var caseNo = await page.evaluate(() => {
                     return document.querySelector('#lblCaseNumber').innerHTML;
                 });
@@ -210,6 +218,7 @@ let runSearchPostCaptcha = async () => {
                 result.cases[caseNo] = {};
 
                 //grab the file date
+                print('Extracting File date...', true);
                 var fileDate = await page.evaluate(() => {
                     return document.querySelector('#lblDateFiled').innerHTML;
                 });
@@ -219,14 +228,16 @@ let runSearchPostCaptcha = async () => {
                 result.cases[caseNo].fileDate = fileDate;
 
                 result.cases[caseNo].charges = {};
-
+                
+                print('Getting charges count...', true);
                 var chargeCount = await page.evaluate(() => {
                     return parseInt(document.querySelector('#lblTotalofCharges').innerHTML);
                 });
 
                 print(`Found ${chargeCount} charge(s)...`, true);
-
+                print('Looping through charges...', true);
                 for (var k = 0; k < chargeCount; k++) {
+                    print('Getting charge...', true);
                     var charge = await page.evaluate(x => {
                         return document.querySelector(`#pnlCharges > div > div > div > div.panel-body > table > tbody > tr:nth-child(${x+2}) > td:nth-child(2)`).innerHTML;
                     }, k);
@@ -236,6 +247,8 @@ let runSearchPostCaptcha = async () => {
                     result.cases[caseNo].charges[k] = {};
 
                     result.cases[caseNo].charges[k].charge = charge;
+                    
+                    print('Getting charge type...', true);
 
                     var chargeType = await page.evaluate(x => {
                         return document.querySelector(`#pnlCharges > div > div > div > div.panel-body > table > tbody > tr:nth-child(${x+2}) > td:nth-child(3)`).innerHTML;
@@ -245,15 +258,17 @@ let runSearchPostCaptcha = async () => {
 
                     result.cases[caseNo].charges[k].chargeType = chargeType;
                 }
+                
+                print('Going back to case list...', true);
                 await page.click('#lnkCases');
             }
-
-            await page.waitFor(1000);
+            
+            print('Going back to defendants list...', true);
 
             await page.click('#lnkDefendants');
 
         } else {
-            print('DOB does not match', true);
+            print('DOB or sex does not match', true);
         }
     }
 
@@ -278,11 +293,9 @@ function finish() {
 function print(text, debug) {
     if (debug && debugMode) {
         console.log(text);
-        console.log('');
     }
     if (!debug) {
         console.log(text);
-        console.log('');
     }
 };
 
