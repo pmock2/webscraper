@@ -1,6 +1,15 @@
 var title;
 var info;
 
+var header = `    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet"
+integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"
+integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/popper.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous">
+</script>`;
+
 document.addEventListener('DOMContentLoaded', startPuppeteer, false);
 
 function submit() {
@@ -159,11 +168,13 @@ function postCaptcha() {
     title.innerText = 'Running Query';
 }
 
+var resultObj;
+
 function setResults(XHR) {
     info.innerText = '';
     title.innerText = 'Results';
 
-    var resultObj = JSON.parse(XHR.responseText);
+    resultObj = JSON.parse(XHR.responseText);
 
     match = resultObj.match + '';
     first = resultObj.first + '';
@@ -241,8 +252,19 @@ function setResults(XHR) {
             chargeRow.innerHTML = `
                 <div class="col">${charges[j].charge}</div>
                 <div class="col">${charges[j].chargeType}</div>
-                <div class='col'><button class="btn btn-primary btn-sm submit-button"></div>
             `
+            var rawHtmlButton = newElement('DIV');
+            rawHtmlButton.classList.add('col');
+            rawHtmlButton.innerHTML = `<button data-charge="${j}" data-case="${caseNumber}" class="btn btn-primary btn-sm submit-button">HTML</button>`;
+            rawHtmlButton.addEventListener('click', (e) => {
+                var target = e.target;
+                var win = window.open();
+                var html = charges[parseInt(target.dataset.charge)].html
+                win.document.write(`${header}<style>${resultObj.css}</style>${html}`);
+            });
+            
+            chargeRow.append(rawHtmlButton);
+            
             chargeTable.append(chargeRow);
         }
         caseInfo.append(chargeTable);

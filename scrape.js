@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-var headless = false;
+var headless = true;
 var debugMode = true;
 var browser;
 var page;
@@ -48,8 +48,6 @@ let init = async () => {
 
     print('navigate to main court page...');
     await page.goto('https://www2.miami-dadeclerk.com/CJIS/CaseSearch.aspx?AspxAutoDetectCookieSupport=1');
-
-    print(info, true);
 
     print('clicking defendant tab...');
     await page.click('#tab4defaultheader');
@@ -330,6 +328,7 @@ function finish() {
     result.last = info.last;
     result.DOB = info.DOB;
     result.sex = info.sex;
+    result.css = css;
 
     print(result, true);
     return result;
