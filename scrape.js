@@ -6,6 +6,8 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+
+//global variables that we'll need
 var headless = true;
 var debugMode = true;
 var browser;
@@ -18,24 +20,25 @@ var result = {
     cases: {},
 }
 
+
+//initializes our robot
 let init = async () => {
 
     result = {
         match: false,
         cases: {},
     }
-
-
     print('Initializing Puppeteer...', true);
     browser = await puppeteer.launch({
         headless: headless
     });
-
+    
+    //create a new browser page and set its conditions
     page = await browser.newPage();
 
     await page.setViewport({
         width: 1000,
-        height: 1000
+        height: 800
     });
 
     print('Grabbing page CSS...');
@@ -60,8 +63,8 @@ let init = async () => {
     });
 }
 
-//scraping data
-let runSearchToCaptcha = async (caseInfo) => {
+//input subject info and prepare for captcha
+async function runSearchToCaptcha(caseInfo) {
     print('Starting search...', true);
     info = caseInfo;
 
@@ -100,6 +103,7 @@ let runSearchToCaptcha = async (caseInfo) => {
     return getCaptchaPic(page);
 }
 
+//captures a screenshot of the captcha for the user to input
 async function getCaptchaPic(page) {
     print('Waiting for captcha info...');
     await page.click('#CaptchaCodeTextBox');
@@ -108,6 +112,7 @@ async function getCaptchaPic(page) {
     });
 }
 
+//tries the captcha
 async function tryCaptcha(captchaText) {
     print('Running search post captcha...', true);
 
@@ -118,7 +123,9 @@ async function tryCaptcha(captchaText) {
     await page.click('#btnNameSearch');
 
     var goodCaptcha = false;
-
+    
+    
+    //kinda wonky... probably should look for a better solution
     try {
         await page.click('#CaptchaCodeTextBox');
         goodCaptcha = false;
@@ -138,9 +145,12 @@ async function tryCaptcha(captchaText) {
     }
 }
 
+//runs the search once the captcha has been confirmed
 let runSearchPostCaptcha = async () => {
-
     print('Waiting for defendants...', true);
+    
+    //Kinda wonky... Could def be improved.
+    //looking to see if no results are found
     try {
         await page.waitFor('#lblDefendants1', {
             timeout: 5000
