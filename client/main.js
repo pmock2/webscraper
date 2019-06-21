@@ -44,9 +44,12 @@ function submit() {
         alert('Please fill out DOB-Year field');
         return;
     }
+    
+    console.log(sex);
 
-    if (sex === 'sex') {
+    if (sex.toLowerCase().replace(' ', '').trim() === 'sex') {
         alert('Please choose a subject sex');
+        return;
     }
 
     var sendObj = {
@@ -60,10 +63,10 @@ function submit() {
 
     document.querySelector('.query-input-group').remove();
     info = document.querySelector('.subtitle');
-    info.innerText = 'Running Search...';
+    info.innerText = 'Inputting subject info into defendant form...';
 
     title = document.querySelector('#title');
-    title.innerText = 'Search Submitted';
+    title.innerText = 'Subject Info Submitted';
 
     var XHR = new XMLHttpRequest();
 
@@ -90,8 +93,8 @@ function showScreenshotPage(error) {
     var captcha = document.createElement("IFRAME");
     captcha.src = 'http://' + window.location.host + '/captcha.png';
     captcha.seamless = true;
-    captcha.width = 1550;
-    captcha.height = 1050;
+    captcha.width = 850;
+    captcha.height = 850;
     captcha.style.display = 'none';
 
     //create show/hide button
@@ -116,6 +119,7 @@ function showScreenshotPage(error) {
     //create container
     var captchaInputContainer = document.createElement("DIV");
     captchaInputContainer.id = 'captcha-input-container';
+    captchaInputContainer.classList.add('card');
 
     //append
     captchaInputContainer.append(showHideButton);
@@ -321,7 +325,7 @@ function startPuppeteer() {
                 </div>
                 
                 <div class="dropdown">
-                    <button class="btn btn-info dropdown-toggle submit-button" type="button" id="dropdownMenuButton" data-toggle="dropdown">
+                    <button class="btn btn-info dropdown-toggle submit-button sex-drop" type="button" id="dropdownMenuButton" data-toggle="dropdown">
                         Sex
                     </button>
                     

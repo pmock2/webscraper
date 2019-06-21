@@ -37,7 +37,7 @@ let init = async () => {
     page = await browser.newPage();
 
     await page.setViewport({
-        width: 1000,
+        width: 800,
         height: 800
     });
 
