@@ -35,7 +35,7 @@ function submit() {
         alert('Please fill out DOB-Year field');
         return;
     }
-    
+
     if (sex === 'sex') {
         alert('Please choose a subject sex');
     }
@@ -46,7 +46,7 @@ function submit() {
         "DOBDay": DOBDay,
         "DOBMonth": DOBMonth,
         "DOBYear": DOBYear,
-        "sex" : sex.toLowerCase()
+        "sex": sex.toLowerCase()
     }
 
     document.querySelector('.query-input-group').remove();
@@ -138,8 +138,14 @@ function postCaptcha() {
     XHR.onreadystatechange = function () {
         if (this.readyState === 4 && this.status === 200) {
             setResults(XHR);
-        } else if (this.status === 500 && this.readyState === 4) {
+        } else if (this.status === 400 && this.readyState === 4) {
             showScreenshotPage(true);
+        } else if (this.status === 500 && this.readyState === 4) {
+            while (document.body.firstChild !== null) {
+                document.body.removeChild(document.body.firstChild);
+            }
+
+            document.body.innerHTML = XHR.responseText;
         }
     }
 
@@ -179,7 +185,7 @@ function setResults(XHR) {
 
     var DOBElement = newElement("DIV");
     DOBElement.innerHTML = `<span class="result-key">DOB : </span><span ">${DOB.month}/</span><span ">${DOB.day}/</span><span ">${DOB.year}</span>`;
-    
+
     var sexElement = newElement("DIV");
     sexElement.innerHTML = `<span class="result-key">Sex : </span><span>${sex.toUpperCase()}</span>`;
 
@@ -222,6 +228,7 @@ function setResults(XHR) {
             <div class="row">
                 <div class="col font-weight-bold">Charge</div>
                 <div class="col font-weight-bold">Charge Type</div>
+                <div class="col font-weight-bold">Raw HTML</div>
             </div>
         `;
 
@@ -234,17 +241,17 @@ function setResults(XHR) {
             chargeRow.innerHTML = `
                 <div class="col">${charges[j].charge}</div>
                 <div class="col">${charges[j].chargeType}</div>
+                <div class='col'><button class="btn btn-primary btn-sm submit-button"></div>
             `
             chargeTable.append(chargeRow);
         }
-
         caseInfo.append(chargeTable);
 
         container.append(caseDrop);
         container.append(caseInfo);
     }
     document.body.append(container);
-    
+
     var restartButton = newElement('BUTTON');
     restartButton.innerText = 'Run New Search';
     restartButton.classList.add('btn', 'btn-primary', 'btn-sm', 'submit-button');
@@ -307,11 +314,11 @@ function startPuppeteer() {
                     onclick="submit()">Submit</button>
             </div>
             `;
-            
+
             for (const child of document.querySelector('.dropdown-menu').children) {
                 child.addEventListener('click', () => {
                     document.querySelector('#dropdownMenuButton').innerHTML = child.innerHTML;
-                    
+
                 });
             }
         }

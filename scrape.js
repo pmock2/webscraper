@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-var headless = true;
+var headless = false;
 var debugMode = true;
 var browser;
 var page;
@@ -19,6 +19,13 @@ var result = {
 }
 
 let init = async () => {
+
+    result = {
+        match: false,
+        cases: {},
+    }
+
+
     print('Initializing Puppeteer...', true);
     browser = await puppeteer.launch({
         headless: headless
@@ -28,7 +35,7 @@ let init = async () => {
 
     await page.setViewport({
         width: 1000,
-        height: 800
+        height: 1000
     });
 
     print('Grabbing page CSS...');
@@ -42,6 +49,13 @@ let init = async () => {
     print('navigate to main court page...');
     await page.goto('https://www2.miami-dadeclerk.com/CJIS/CaseSearch.aspx?AspxAutoDetectCookieSupport=1');
 
+    print(info, true);
+
+    print('clicking defendant tab...');
+    await page.click('#tab4defaultheader');
+
+    await page.waitFor(1000);
+
     print('Done.', true);
     return new Promise((resolve, reject) => {
         resolve(true);
@@ -50,16 +64,8 @@ let init = async () => {
 
 //scraping data
 let runSearchToCaptcha = async (caseInfo) => {
-    info = caseInfo;
-
     print('Starting search...', true);
-
-    print(info, true);
-
-    print('clicking defendant tab...');
-    await page.click('#tab4defaultheader');
-
-    await page.waitFor(1000);
+    info = caseInfo;
 
     print('Inputting defendant info...');
     await page.type('#txtDefendantFirstName', info.first);
@@ -135,6 +141,7 @@ async function tryCaptcha(captchaText) {
 }
 
 let runSearchPostCaptcha = async () => {
+
     print('Waiting for defendants...', true);
     try {
         await page.waitFor('#lblDefendants1', {
@@ -160,142 +167,157 @@ let runSearchPostCaptcha = async () => {
         }
     }
 
-    print('Grabbing Defendants count...', true);
-    var defendantsCount = await page.evaluate(() => {
-        return document.querySelector('#lblDefendants1').innerHTML;
-    });
+    try {
+        print('Grabbing Defendants count...', true);
+        var defendantsCount = await page.evaluate(() => {
+            return document.querySelector('#lblDefendants1').innerHTML;
+        });
 
-    print('Looping through Defendants...', true);
-    for (var i = 1; i < parseInt(defendantsCount) + 1; i++) {
-        print('Waiting for subjects table...', true);
-        await page.waitFor('#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(1) > td:nth-child(7)');
+        print('Looping through Defendants...', true);
+        for (var i = 1; i < parseInt(defendantsCount) + 1; i++) {
+            print('Waiting for subjects table...', true);
+            await page.waitFor('#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(1) > td:nth-child(7)');
 
-        print('Grabbing subject DOB...', true);
-        var DOB = await page.evaluate(x => {
-            var DOBElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(7)`);
-            return DOBElement.innerHTML;
-        }, i);
+            print('Grabbing subject DOB...', true);
+            var DOB = await page.evaluate(x => {
+                var DOBElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(7)`);
+                return DOBElement.innerHTML;
+            }, i);
 
-        print('Grabbing subject sex...', true);
-        var sex = await page.evaluate(x => {
-            var sexElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(6)`);
-            return sexElement.innerHTML;
-        }, i);
+            print('Grabbing subject sex...', true);
+            var sex = await page.evaluate(x => {
+                var sexElement = document.querySelector(`#form1 > div.container > div:nth-child(12) > div > div > table > tbody > tr:nth-child(${x}) > td:nth-child(6)`);
+                return sexElement.innerHTML;
+            }, i);
 
-        var DOBSplit = DOB.split('/');
+            var DOBSplit = DOB.split('/');
 
-        if (DOBSplit[0] === info.DOB.month && DOBSplit[1] === info.DOB.day && DOBSplit[2] === info.DOB.year &&
-            (info.sex[0] === sex[0].toLowerCase() || info.sex.toLowerCase() === 'unspecified')) {
-            print('Found matching DOB and Sex', true);
-            result.match = true;
+            if (DOBSplit[0] === info.DOB.month && DOBSplit[1] === info.DOB.day && DOBSplit[2] === info.DOB.year &&
+                (info.sex[0] === sex[0].toLowerCase() || info.sex.toLowerCase() === 'unspecified')) {
+                print('Found matching DOB and Sex', true);
+                result.match = true;
 
-            print('Clicking cases button...', true);
-            await page.click(`.table-condensed tbody tr:nth-child(${i}) td button`);
+                print('Clicking cases button...', true);
+                await page.click(`.table-condensed tbody tr:nth-child(${i}) td button`);
 
-            print('Waiting for cases page...', true);
-            await page.waitFor('#lblCases');
+                print('Waiting for cases page...', true);
+                await page.waitFor('#lblCases');
 
-            print('Getting case count..', true);
-            var caseCount = await page.evaluate(() => {
-                return parseInt(document.querySelector('#lblCases').innerHTML);
-            });
-
-            print(`Found ${caseCount} case(s)`, true);
-
-            print('Looping through cases...', true);
-
-            for (var j = 0; j < caseCount; j++) {
-
-                var caseHTML = await page.evaluate(() => {
-                    return document.body.innerHTML;
+                print('Getting case count..', true);
+                var caseCount = await page.evaluate(() => {
+                    return parseInt(document.querySelector('#lblCases').innerHTML);
                 });
 
-                //click on that row's details
-                print('Waiting for case button...', true);
-                await page.waitFor(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
+                print(`Found ${caseCount} case(s)`, true);
 
-                print('Clicking case button', true);
-                await page.click(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
+                print('Looping through cases...', true);
 
-                print('Waiting for case modal..', true);
-                await page.waitFor('#lblCaseNumber');
-
-                //grab the case no
-                print('Extracting case number...', true);
-                var caseNo = await page.evaluate(() => {
-                    return document.querySelector('#lblCaseNumber').innerHTML;
-                });
-
-                print(`Case Number : ${caseNo}`, true);
-
-                result.cases[caseNo] = {};
-
-                result.cases[caseNo].html = caseHTML;
-
-                //grab the file date
-                print('Extracting File date...', true);
-                var fileDate = await page.evaluate(() => {
-                    return document.querySelector('#lblDateFiled').innerHTML;
-                });
-
-                print(`File Date : ${fileDate}`, true);
-
-                result.cases[caseNo].fileDate = fileDate;
-
-                result.cases[caseNo].charges = {};
-
-                print('Getting charges count...', true);
-                var chargeCount = await page.evaluate(() => {
-                    return parseInt(document.querySelector('#lblTotalofCharges').innerHTML);
-                });
-
-                print(`Found ${chargeCount} charge(s)...`, true);
-                print('Looping through charges...', true);
-
-                for (var k = 0; k < chargeCount; k++) {
-                    print('Getting charge...', true);
-                    var charge = await page.evaluate(x => {
-                        return document.querySelector(`#pnlCharges > div > div > div > div.panel-body > table > tbody > tr:nth-child(${x+2}) > td:nth-child(2)`).innerHTML;
-                    }, k);
-
-                    print(`Charge ${k+1} : ${charge}`, true);
-
-                    result.cases[caseNo].charges[k] = {};
-                    result.cases[caseNo].charges[k].charge = charge;
-
-                    var chargeHTML = await page.evaluate(() => {
+                for (var j = 0; j < caseCount; j++) {
+                    
+                    await page.waitFor('body');
+                    
+                    var caseHTML = await page.evaluate(() => {
                         return document.body.innerHTML;
                     });
-                    
-                    result.cases[caseNo].charges[k].html = chargeHTML;
-                    
-                    print('Getting charge type...', true);
 
-                    var chargeType = await page.evaluate(x => {
-                        return document.querySelector(`#pnlCharges > div > div > div > div.panel-body > table > tbody > tr:nth-child(${x+2}) > td:nth-child(3)`).innerHTML;
-                    }, k);
+                    //click on that row's details
+                    print('Waiting for case button...', true);
+                    await page.waitFor(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
 
-                    print(`Charge Type ${k+1} : ${chargeType}`, true);
+                    print('Clicking case button', true);
+                    await page.click(`#form1 > div.container > div:nth-child(11) > div > div > table > tbody > tr:nth-child(${j+2}) > td:nth-child(1) > button`);
 
-                    result.cases[caseNo].charges[k].chargeType = chargeType;
+                    print('Waiting for case modal..', true);
+                    await page.waitFor('#lblCaseNumber');
+
+                    //grab the case no
+                    print('Extracting case number...', true);
+                    var caseNo = await page.evaluate(() => {
+                        return document.querySelector('#lblCaseNumber').innerHTML;
+                    });
+
+                    print(`Case Number : ${caseNo}`, true);
+
+                    result.cases[caseNo] = {};
+
+                    result.cases[caseNo].html = caseHTML;
+
+                    //grab the file date
+                    print('Extracting File date...', true);
+                    var fileDate = await page.evaluate(() => {
+                        return document.querySelector('#lblDateFiled').innerHTML;
+                    });
+
+                    print(`File Date : ${fileDate}`, true);
+
+                    result.cases[caseNo].fileDate = fileDate;
+
+                    result.cases[caseNo].charges = {};
+
+                    print('Getting charges count...', true);
+                    var chargeCount = await page.evaluate(() => {
+                        return parseInt(document.querySelector('#lblTotalofCharges').innerHTML);
+                    });
+
+                    print(`Found ${chargeCount} charge(s)...`, true);
+                    print('Looping through charges...', true);
+
+                    for (var k = 0; k < chargeCount; k++) {
+                        print('Getting charge...', true);
+                        var charge = await page.evaluate(x => {
+                            return document.querySelector(`#pnlCharges > div > div > div > div.panel-body > table > tbody > tr:nth-child(${x+2}) > td:nth-child(2)`).innerHTML;
+                        }, k);
+
+                        print(`Charge ${k+1} : ${charge}`, true);
+
+                        result.cases[caseNo].charges[k] = {};
+                        result.cases[caseNo].charges[k].charge = charge;
+
+                        var chargeHTML = await page.evaluate(() => {
+                            return document.body.innerHTML;
+                        });
+
+                        result.cases[caseNo].charges[k].html = chargeHTML;
+
+                        print('Getting charge type...', true);
+
+                        var chargeType = await page.evaluate(x => {
+                            return document.querySelector(`#pnlCharges > div > div > div > div.panel-body > table > tbody > tr:nth-child(${x+2}) > td:nth-child(3)`).innerHTML;
+                        }, k);
+
+                        print(`Charge Type ${k+1} : ${chargeType}`, true);
+
+                        result.cases[caseNo].charges[k].chargeType = chargeType;
+                    }
+
+                    print('Waiting for case list button...', true);
+
+                    await page.waitFor('#lnkCases');
+
+                    print('Going back to case list...', true);
+
+                    await page.click('#lnkCases');
                 }
 
-                print('Going back to case list...', true);
-                await page.click('#lnkCases');
+                print('Going back to defendants list...', true);
+
+                await page.waitFor('#lnkDefendants');
+
+                await page.click('#lnkDefendants');
+                
+                print('')
+
+            } else {
+                print('DOB or sex does not match', true);
             }
-
-            print('Going back to defendants list...', true);
-            
-            await page.waitFor('#lnkDefendants');
-
-            await page.click('#lnkDefendants');
-
-        } else {
-            print('DOB or sex does not match', true);
         }
-    }
 
-    return finish();
+        return finish();
+
+    } catch (error) {
+        browser.close();
+        throw error;
+    }
 }
 
 function finish() {
@@ -327,4 +349,5 @@ module.exports = {
     runSearchPostCaptcha: runSearchPostCaptcha,
     init: init,
     tryCaptcha: tryCaptcha,
+    headless: headless
 };
