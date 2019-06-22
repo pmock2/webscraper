@@ -8,7 +8,7 @@ const rl = readline.createInterface({
 
 
 //global variables that we'll need
-var headless = true;
+var headless = false;
 var debugMode = true;
 var browser;
 var page;
@@ -252,6 +252,9 @@ let runSearchPostCaptcha = async () => {
 
                     //grab the file date
                     print('Extracting File date...', true);
+
+                    await page.waitFor('#lblDateFiled');
+
                     var fileDate = await page.evaluate(() => {
                         return document.querySelector('#lblDateFiled').innerHTML;
                     });
@@ -339,8 +342,6 @@ function finish() {
     result.DOB = info.DOB;
     result.sex = info.sex;
     result.css = css;
-
-    print(result, true);
     return result;
 }
 
